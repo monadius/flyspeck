@@ -1,0 +1,137 @@
+open Native_strictbuild;;
+load_begin();;
+
+open Iter;;
+open Products;;
+open Permutations;;
+open Misc;;
+open Vectors;;
+open Determinants;;
+open Metric;;
+open Topology;;
+open Convex;;
+open Polytope;;
+open Integration;;
+open Measure;;
+open Complexes;;
+open Transcendentals;;
+open Realanalysis;;
+open Geom;;
+open Cross;;
+open Flyspeck;;
+
+(* Contains the tame archive *)
+
+needs "../formal_graph/archive/archive_all.ml";;
+
+(* good_list conversion and all definitions *)
+needs "../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
+
+(* module Good_list_archive = struct *)
+
+let archive_const_name = "tame_archive_lists";;
+
+(* If not empty then only selected linear programs are verified *)
+(* (test ids must be from formal_lp/glpk/binary/easy_1.dat *)
+let test_archive_ids = 
+  [
+ 
+    (* First 3 cases from formal_lp/glpk/binary/easy_1.dat *)
+    "229367313231";
+    "204880136538";
+    "46026013883";  
+
+  ];;
+
+(* A custom list printer parameter which indicates the maximum number of terms to be printed *)
+let long_list_max = ref 3;;
+
+let dest_long_list tm =
+  let rec dest n tm acc =
+    if n <= 0 then (rev acc, true) else
+      match tm with
+	| Comb (Comb (Const ("CONS", _), h_tm), t_tm) ->
+	    begin
+	      match t_tm with
+		| Const ("NIL", _) -> (rev (h_tm :: acc), false)
+		| _ -> dest (n - 1) t_tm (h_tm :: acc)
+	    end
+	| Const ("NIL", _) -> (rev acc, false)
+	| _ -> failwith "dest_long_list" in
+    dest !long_list_max tm [];;
+
+
+let print_long_list =
+  let rec print_term_sequence sep = function
+    | [] -> ()
+    | h :: ts ->
+	let _ = print_term h in
+	  if ts = [] then ()
+	  else print_string sep; print_term_sequence sep ts in
+    fun form tm ->
+      let tms, flag = dest_long_list tm in
+      let _ = print_string "[" in
+      let _ = print_term_sequence ";" tms in
+      let _ = if flag then print_string " ..." else () in
+	print_string "]";;
+
+
+install_user_printer ("long_list", print_long_list);;
+
+
+open List_hypermap_computations;;
+open List_conversions;;
+
+let create_num_list =
+  let num_type = `:num` in
+  let num_list_type = `:(num)list` in
+  fun ll ->
+    let mk_num n = rand (Arith_num.mk_small_numeral_array n) in
+    let s1 = List.map (List.map mk_num) ll in
+    let s2 = List.map (fun l -> mk_list (l, num_type)) s1 in
+    mk_list (s2, num_list_type);;
+
+let archive_const_ids, archive_list, archive_const_def =
+  let lhs = mk_var (archive_const_name, `:(((num)list)list)list`) in
+  let list1 = Archive_all.tame_list in
+(*  let list0 = Glpk_link.strip_archive (!Lpproc.archiveraw) in *)
+(*  let list1 = map Glpk_link.convert_to_list list0 in *)
+  let list = 
+    if test_archive_ids = [] then
+      list1
+    else
+      List.filter (fun (id, _,_) -> List.mem id test_archive_ids) list1 in
+  let list_ids, list_tms = unzip (List.map (fun (id, _, l) -> id, create_num_list l) list) in
+  let rhs = mk_list (list_tms, `:((num)list)list`) in
+  let eq_tm = mk_eq (lhs, rhs) in
+    list_ids, list, new_definition eq_tm;;
+
+let archive_const = lhand (concl archive_const_def);;
+
+let good_list_archive, good_list_archive_table =
+  let n = length archive_const_ids in
+  let i = ref 0 in
+  let table = Hashtbl.create (length archive_const_ids) in
+  let ids = ref archive_const_ids in
+  let good_conv tm = 
+    let id = hd !ids in
+    let _ = ids := tl !ids in
+    let _ = incr i in
+    let _ = if ((!i - 1) mod 100 = 0 || !i >= n) then report (sprintf "%d / %d" !i n) in
+    let raw_tm = rand tm in
+    let th0 = eval_good_list0 raw_tm (eval_list_of_darts raw_tm) in
+    let _ = Hashtbl.add table id th0 in
+      EQT_INTRO th0 in
+  let eq_th = AP_TERM `ALL (good_list:((num)list)list->bool)` archive_const_def in
+  let _ = report "\nVerifying: |- ALL good_list tame_archive_list\n" in
+  let th1 = EQT_ELIM (all_conv_univ good_conv (rand (concl eq_th))) in
+  let _ = Gc.compact() in
+  let _ = report "\nDone: |- ALL good_list tame_archive_list\n" in
+    EQ_MP (SYM eq_th) th1, table;;
+
+delete_user_printer "long_list";;
+
+end;;
+
+
+load_end __FILE__;;

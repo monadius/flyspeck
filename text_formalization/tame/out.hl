@@ -1,0 +1,505 @@
+open Native_strictbuild;;
+load_begin();;
+
+open Iter;;
+open Products;;
+open Permutations;;
+open Misc;;
+open Vectors;;
+open Determinants;;
+open Metric;;
+open Topology;;
+open Convex;;
+open Polytope;;
+open Integration;;
+open Measure;;
+open Complexes;;
+open Transcendentals;;
+open Realanalysis;;
+open Geom;;
+open Cross;;
+open Flyspeck;;
+
+let COND_T = (standardize o prove)(`(if T then (t:A) else e) = t`, REWRITE_TAC[]) and
+    COND_F = (standardize o prove)(`(if F then (t:A) else e) = e`, REWRITE_TAC[]);;
+
+let p_var_bool = standardize_tm `P: bool`;;
+let T_AND = (standardize o TAUT) `T /\ P <=> P` and
+    F_AND = (standardize o TAUT) `F /\ P <=> F` and
+    T_OR = (standardize o TAUT) `T \/ P <=> T` and
+    F_OR = (standardize o TAUT) `F \/ P <=> P`;;
+
+let local_split_thm th =
+  let extra_rw = PURE_REWRITE_RULE [] in
+  let extra_rules = rev_itlist (o) [] I in
+  split_thm th |> List.map extra_rw |> List.map extra_rules
+;;
+
+let no_abs_good_list_alt, abs_def_1, abs_def_2, abs_def_3 =
+  match replace_abstractions (good_list_alt) with
+  | (th, [eq1; eq2; eq3]) -> (th, eq1, eq2, eq3)
+  | _ -> failwith "no_abs_good_list_alt"
+  
+;;
+
+let f_EQ_num_num =
+  let EQ_PAIR_case1, EQ_PAIR_case2 =
+    match List.map standardize (inst_type_thms `:num#num->num#num->bool` (local_split_thm EQ_PAIR)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_x = standardize_tm (mk_var ("x", `:num`)) in
+  let var_y = standardize_tm (mk_var ("y", `:num`)) in
+  let var_a = standardize_tm (mk_var ("a", `:num`)) in
+  let var_b = standardize_tm (mk_var ("b", `:num`)) in
+  let var_xy = standardize_tm (mk_var ("xy", `:num#num`)) in
+  let rec f_EQ_num_num tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | (xy, xy1) when Pervasives.compare xy xy1 = 0 -> trans_opt opt_th (INST [xy, var_xy] EQ_PAIR_case1)
+    | (Comb (Comb (Const (",", _), x), y), Comb (Comb (Const (",", _), a), b)) ->
+      let base_th = trans_opt opt_th (INST [b, var_b; a, var_a; y, var_y; x, var_x] EQ_PAIR_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), a2)) ->
+        let r1 = f_EQ_num x a None in
+        if is_true_th r1 then
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_EQ_num y b (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_EQ_num_num"
+     in
+  f_EQ_num_num
+;;
+
+let f_MEM_num_num =
+  let MEM_case1, MEM_case2 =
+    match List.map standardize (inst_type_thms `:num#num->(num#num)list->bool` (local_split_thm MEM)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_x = standardize_tm (mk_var ("x", `:num#num`)) in
+  let var_h = standardize_tm (mk_var ("h", `:num#num`)) in
+  let var_t = standardize_tm (mk_var ("t", `:(num#num)list`)) in
+  let rec f_MEM_num_num tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | (x, Const ("NIL", _)) -> trans_opt opt_th (INST [x, var_x] MEM_case1)
+    | (x, Comb (Comb (Const ("CONS", _), h), t)) ->
+      let base_th = trans_opt opt_th (INST [x, var_x; t, var_t; h, var_h] MEM_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), a2)) ->
+        let r1 = f_EQ_num_num x h None in
+        if is_true_th r1 then
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] T_OR in
+          TRANS (TRANS base_th th0) th1
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] F_OR in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_MEM_num_num x t (Some base_th)
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_MEM_num_num"
+     in
+  f_MEM_num_num
+;;
+
+let f_good_list_abs3_num =
+  let abs_def_3_case1 =
+    match List.map standardize (inst_type_thms `:(num#num)list->num#num->bool` (local_split_thm abs_def_3)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_list = standardize_tm (mk_var ("list", `:(num#num)list`)) in
+  let var_a = standardize_tm (mk_var ("a", `:num`)) in
+  let var_b = standardize_tm (mk_var ("b", `:num`)) in
+  let rec f_good_list_abs3_num tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | (list, Comb (Comb (Const (",", _), a), b)) ->
+      let base_th = trans_opt opt_th (INST [b, var_b; a, var_a; list, var_list] abs_def_3_case1) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (_, a1), _)) -> f_MEM_num_num a1 list (Some base_th)
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_good_list_abs3_num"
+     in
+  f_good_list_abs3_num
+;;
+
+let f_EQ_num_list =
+  let EQ_LIST_case1, EQ_LIST_case2, EQ_LIST_case3, EQ_LIST_case4 =
+    match List.map standardize (inst_type_thms `:(num)list->(num)list->bool` (local_split_thm EQ_LIST)) with
+    | [th1; th2; th3; th4] -> (th1, th2, th3, th4)
+    | _ -> failwith "error"
+     in
+  let var_x = standardize_tm (mk_var ("x", `:num`)) in
+  let var_xs = standardize_tm (mk_var ("xs", `:(num)list`)) in
+  let var_y = standardize_tm (mk_var ("y", `:num`)) in
+  let var_ys = standardize_tm (mk_var ("ys", `:(num)list`)) in
+  let rec f_EQ_num_list tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | (xs, xs1) when Pervasives.compare xs xs1 = 0 -> trans_opt opt_th (INST [xs, var_xs] EQ_LIST_case1)
+    | (Const ("NIL", _), Comb (Comb (Const ("CONS", _), x), xs)) -> trans_opt opt_th (INST [xs, var_xs; x, var_x] EQ_LIST_case2)
+    | (Comb (Comb (Const ("CONS", _), x), xs), Const ("NIL", _)) -> trans_opt opt_th (INST [xs, var_xs; x, var_x] EQ_LIST_case3)
+    | (Comb (Comb (Const ("CONS", _), x), xs), Comb (Comb (Const ("CONS", _), y), ys)) ->
+      let base_th = trans_opt opt_th (INST [ys, var_ys; y, var_y; xs, var_xs; x, var_x] EQ_LIST_case4) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), a2)) ->
+        let r1 = f_EQ_num x y None in
+        if is_true_th r1 then
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_EQ_num_list xs ys (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_EQ_num_list"
+     in
+  f_EQ_num_list
+;;
+
+let f_NOT =
+  let NOT_CLAUSES'_case1, NOT_CLAUSES'_case2 =
+    match List.map standardize (local_split_thm NOT_CLAUSES') with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let rec f_NOT tm1 opt_th =
+    match tm1 with
+    | Const ("T", _) -> trans_opt opt_th NOT_CLAUSES'_case1
+    | Const ("F", _) -> trans_opt opt_th NOT_CLAUSES'_case2
+    | _ -> failwith "No match: f_NOT"
+     in
+  f_NOT
+;;
+
+let f_good_list_abs2_num =
+  let abs_def_2_case1 =
+    match List.map standardize (inst_type_thms `:(num)list->bool` (local_split_thm abs_def_2)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_l = standardize_tm (mk_var ("l", `:(num)list`)) in
+  let rec f_good_list_abs2_num l opt_th =
+    let base_th = trans_opt opt_th (INST [l, var_l] abs_def_2_case1) in
+    match concl base_th with
+    | Comb (_, Comb (a2, Comb (_, a1))) ->
+      let r1 = f_EQ_num_list l a1 None in
+      let r2 = MK_COMB (REFL a2, r1) in
+      f_NOT (rand (concl r1)) (Some (TRANS base_th r2))
+    | _ -> failwith "bad pattern"
+     in
+  f_good_list_abs2_num
+;;
+
+let f_ALL_num_list =
+  let ALL_case1, ALL_case2 =
+    match List.map standardize (inst_type_thms `:((num)list->bool)->((num)list)list->bool` (local_split_thm ALL)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_id_P = standardize_tm (mk_var ("P", `:(num)list->bool`)) in
+  let var_h = standardize_tm (mk_var ("h", `:(num)list`)) in
+  let var_t = standardize_tm (mk_var ("t", `:((num)list)list`)) in
+  let rec f_ALL_num_list tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | ((id_P, func_id_P), Const ("NIL", _)) -> trans_opt opt_th (INST [id_P, var_id_P] ALL_case1)
+    | ((id_P, func_id_P), Comb (Comb (Const ("CONS", _), h), t)) ->
+      let base_th = trans_opt opt_th (INST [id_P, var_id_P; t, var_t; h, var_h] ALL_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), a2)) ->
+        let r1 = func_id_P h None in
+        if is_true_th r1 then
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_ALL_num_list (id_P, func_id_P) t (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_ALL_num_list"
+     in
+  f_ALL_num_list
+;;
+
+let f_ALL_num_num =
+  let ALL_case1, ALL_case2 =
+    match List.map standardize (inst_type_thms `:(num#num->bool)->(num#num)list->bool` (local_split_thm ALL)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_id_P = standardize_tm (mk_var ("P", `:num#num->bool`)) in
+  let var_h = standardize_tm (mk_var ("h", `:num#num`)) in
+  let var_t = standardize_tm (mk_var ("t", `:(num#num)list`)) in
+  let rec f_ALL_num_num tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | ((id_P, func_id_P), Const ("NIL", _)) -> trans_opt opt_th (INST [id_P, var_id_P] ALL_case1)
+    | ((id_P, func_id_P), Comb (Comb (Const ("CONS", _), h), t)) ->
+      let base_th = trans_opt opt_th (INST [id_P, var_id_P; t, var_t; h, var_h] ALL_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), a2)) ->
+        let r1 = func_id_P h None in
+        if is_true_th r1 then
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_ALL_num_num (id_P, func_id_P) t (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a1, r1), REFL a2) in
+          let th1 = INST[a2, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_ALL_num_num"
+     in
+  f_ALL_num_num
+;;
+
+let f_uniq_num_num =
+  let uniq_case1, uniq_case2 =
+    match List.map standardize (inst_type_thms `:(num#num)list->bool` (local_split_thm uniq)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_x = standardize_tm (mk_var ("x", `:num#num`)) in
+  let var_s = standardize_tm (mk_var ("s'", `:(num#num)list`)) in
+  let rec f_uniq_num_num tm1 opt_th =
+    match tm1 with
+    | Const ("NIL", _) -> trans_opt opt_th uniq_case1
+    | Comb (Comb (Const ("CONS", _), x), s) ->
+      let base_th = trans_opt opt_th (INST [s, var_s; x, var_x] uniq_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a2, Comb (a1, _)), a3)) ->
+        let r1 = f_MEM_num_num x s None in
+        let r2 =
+          let r2 = MK_COMB (REFL a1, r1) in
+          f_NOT (rand (concl r1)) (Some r2) in
+        if is_true_th r2 then
+          let th0 = MK_COMB (MK_COMB (REFL a2, r2), REFL a3) in
+          let th1 = INST[a3, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          f_uniq_num_num s (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a2, r2), REFL a3) in
+          let th1 = INST[a3, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_uniq_num_num"
+     in
+  f_uniq_num_num
+;;
+
+let f_good_list_abs1_num =
+  let abs_def_1_case1 =
+    match List.map standardize (inst_type_thms `:((num)list)list->(num#num)list->bool` (local_split_thm abs_def_1)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_id_L = standardize_tm (mk_var ("L", `:((num)list)list`)) in
+  let var_list = standardize_tm (mk_var ("list", `:(num#num)list`)) in
+  let rec f_good_list_abs1_num id_L list opt_th =
+    let base_th = trans_opt opt_th (INST [list, var_list; id_L, var_id_L] abs_def_1_case1) in
+    match concl base_th with
+    | Comb (_, Comb (_, (Comb (Comb (a2, Comb (Comb (_, a1), _)), (Comb (Comb (_, a3), _) as a4)) as a5))) ->
+      let r1 = f_uniq_num_num list None in
+      if is_true_th r1 then
+        let th0 = MK_COMB (MK_COMB (REFL a2, r1), REFL a5) in
+        let th1 = INST[a5, p_var_bool] T_AND in
+        let base_th = TRANS (TRANS base_th th0) th1 in
+        let r2 = (a1, f_good_list_abs2_num) in
+        let r3 = f_ALL_num_list r2 id_L None in
+        if is_true_th r3 then
+          let th0 = MK_COMB (MK_COMB (REFL a2, r3), REFL a4) in
+          let th1 = INST[a4, p_var_bool] T_AND in
+          let base_th = TRANS (TRANS base_th th0) th1 in
+          let r4 = (a3, f_good_list_abs3_num list) in
+          f_ALL_num_num r4 list (Some base_th)
+        else
+          let th0 = MK_COMB (MK_COMB (REFL a2, r3), REFL a4) in
+          let th1 = INST[a4, p_var_bool] F_AND in
+          TRANS (TRANS base_th th0) th1
+      else
+        let th0 = MK_COMB (MK_COMB (REFL a2, r1), REFL a5) in
+        let th1 = INST[a5, p_var_bool] F_AND in
+        TRANS (TRANS base_th th0) th1
+    | _ -> failwith "bad pattern"
+     in
+  f_good_list_abs1_num
+;;
+
+let f_flatten_num_num =
+  let flatten_cases_case1, flatten_cases_case2, flatten_cases_case3 =
+    match List.map standardize (inst_type_thms `:((num#num)list)list->(num#num)list` (local_split_thm flatten_cases)) with
+    | [th1; th2; th3] -> (th1, th2, th3)
+    | _ -> failwith "error"
+     in
+  let var_h = standardize_tm (mk_var ("h", `:num#num`)) in
+  let var_t = standardize_tm (mk_var ("t", `:(num#num)list`)) in
+  let var_tt = standardize_tm (mk_var ("tt", `:((num#num)list)list`)) in
+  let rec f_flatten_num_num tm1 opt_th =
+    match tm1 with
+    | Const ("NIL", _) -> trans_opt opt_th flatten_cases_case1
+    | Comb (Comb (Const ("CONS", _), Const ("NIL", _)), tt) ->
+      let base_th = trans_opt opt_th (INST [tt, var_tt] flatten_cases_case2) in
+      f_flatten_num_num tt (Some base_th)
+    | Comb (Comb (Const ("CONS", _), Comb (Comb (Const ("CONS", _), h), t)), tt) ->
+      let base_th = trans_opt opt_th (INST [tt, var_tt; t, var_t; h, var_h] flatten_cases_case3) in
+      (match concl base_th with
+      | Comb (_, Comb (a2, Comb (_, a1))) ->
+        let r1 = f_flatten_num_num a1 None in
+        TRANS base_th (MK_COMB (REFL a2, r1))
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_flatten_num_num"
+     in
+  f_flatten_num_num
+;;
+
+let f_MAP_num_list_num_num_list =
+  let MAP_case1, MAP_case2 =
+    match List.map standardize (inst_type_thms `:((num)list->(num#num)list)->((num)list)list->((num#num)list)list` (local_split_thm MAP)) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_f = standardize_tm (mk_var ("f", `:(num)list->(num#num)list`)) in
+  let var_h = standardize_tm (mk_var ("h", `:(num)list`)) in
+  let var_t = standardize_tm (mk_var ("t", `:((num)list)list`)) in
+  let rec f_MAP_num_list_num_num_list tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | ((f, func_f), Const ("NIL", _)) -> trans_opt opt_th (INST [f, var_f] MAP_case1)
+    | ((f, func_f), Comb (Comb (Const ("CONS", _), h), t)) ->
+      let base_th = trans_opt opt_th (INST [f, var_f; t, var_t; h, var_h] MAP_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (a1, _), _)) ->
+        let r1 = func_f h None in
+        let r2 = f_MAP_num_list_num_num_list (f, func_f) t None in
+        TRANS base_th (MK_COMB (MK_COMB (REFL a1, r1), r2))
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_MAP_num_list_num_num_list"
+     in
+  f_MAP_num_list_num_num_list
+;;
+
+let f_list_pairs2_num =
+  let list_pairs2_case1, list_pairs2_case2, list_pairs2_case3 =
+    match List.map standardize (inst_type_thms `:(num)list->num->(num#num)list` (local_split_thm list_pairs2)) with
+    | [th1; th2; th3] -> (th1, th2, th3)
+    | _ -> failwith "error"
+     in
+  let var_h1 = standardize_tm (mk_var ("h1", `:num`)) in
+  let var_h2 = standardize_tm (mk_var ("h2", `:num`)) in
+  let var_t = standardize_tm (mk_var ("t", `:(num)list`)) in
+  let var_hd = standardize_tm (mk_var ("hd", `:num`)) in
+  let var_h = standardize_tm (mk_var ("h", `:num`)) in
+  let rec f_list_pairs2_num tm1 tm2 opt_th =
+    match (tm1, tm2) with
+    | (Const ("NIL", _), hd) -> trans_opt opt_th (INST [hd, var_hd] list_pairs2_case1)
+    | (Comb (Comb (Const ("CONS", _), h), Const ("NIL", _)), hd) -> trans_opt opt_th (INST [hd, var_hd; h, var_h] list_pairs2_case2)
+    | (Comb (Comb (Const ("CONS", _), h1), Comb (Comb (Const ("CONS", _), h2), t)), hd) ->
+      let base_th = trans_opt opt_th (INST [h2, var_h2; hd, var_hd; t, var_t; h1, var_h1] list_pairs2_case3) in
+      (match concl base_th with
+      | Comb (_, Comb (a2, Comb (Comb (_, a1), _))) ->
+        let r1 = f_list_pairs2_num a1 hd None in
+        TRANS base_th (MK_COMB (REFL a2, r1))
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_list_pairs2_num"
+     in
+  f_list_pairs2_num
+;;
+
+let f_list_pairs_num =
+  let list_pairs_cases_case1, list_pairs_cases_case2 =
+    match List.map standardize (local_split_thm list_pairs_cases) with
+    | [th1; th2] -> (th1, th2)
+    | _ -> failwith "error"
+     in
+  let var_h = standardize_tm (mk_var ("h", `:num`)) in
+  let var_t = standardize_tm (mk_var ("t", `:(num)list`)) in
+  let rec f_list_pairs_num tm1 opt_th =
+    match tm1 with
+    | Const ("NIL", _) -> trans_opt opt_th list_pairs_cases_case1
+    | Comb (Comb (Const ("CONS", _), h), t) ->
+      let base_th = trans_opt opt_th (INST [h, var_h; t, var_t] list_pairs_cases_case2) in
+      (match concl base_th with
+      | Comb (_, Comb (Comb (_, a1), _)) -> f_list_pairs2_num a1 h (Some base_th)
+      | _ -> failwith "bad pattern"
+      )
+    | _ -> failwith "No match: f_list_pairs_num"
+     in
+  f_list_pairs_num
+;;
+
+let f_list_of_faces_num =
+  let list_of_faces_case1 =
+    match List.map standardize (inst_type_thms `:((num)list)list->((num#num)list)list` (local_split_thm list_of_faces)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_id_L = standardize_tm (mk_var ("L", `:((num)list)list`)) in
+  let rec f_list_of_faces_num id_L opt_th =
+    let base_th = trans_opt opt_th (INST [id_L, var_id_L] list_of_faces_case1) in
+    match concl base_th with
+    | Comb (_, Comb (Comb (_, a1), _)) ->
+      let r1 = (a1, f_list_pairs_num) in
+      f_MAP_num_list_num_num_list r1 id_L (Some base_th)
+    | _ -> failwith "bad pattern"
+     in
+  f_list_of_faces_num
+;;
+
+let f_list_of_darts_num =
+  let list_of_darts_alt_case1 =
+    match List.map standardize (inst_type_thms `:((num)list)list->(num#num)list` (local_split_thm list_of_darts_alt)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_id_L = standardize_tm (mk_var ("L", `:((num)list)list`)) in
+  let rec f_list_of_darts_num id_L opt_th =
+    let base_th = trans_opt opt_th (INST [id_L, var_id_L] list_of_darts_alt_case1) in
+    match concl base_th with
+    | Comb (_, Comb (a1, _)) ->
+      let r1 = f_list_of_faces_num id_L None in
+      let r2 = MK_COMB (REFL a1, r1) in
+      f_flatten_num_num (rand (concl r1)) (Some (TRANS base_th r2))
+    | _ -> failwith "bad pattern"
+     in
+  f_list_of_darts_num
+;;
+
+let f_good_list_num =
+  let no_abs_good_list_alt_case1 =
+    match List.map standardize (inst_type_thms `:((num)list)list->bool` (local_split_thm no_abs_good_list_alt)) with
+    | [th1] -> th1
+    | _ -> failwith "error"
+     in
+  let var_id_L = standardize_tm (mk_var ("L", `:((num)list)list`)) in
+  let rec f_good_list_num id_L opt_th =
+    let base_th = trans_opt opt_th (INST [id_L, var_id_L] no_abs_good_list_alt_case1) in
+    match concl base_th with
+    | Comb (_, Comb (a1, _)) ->
+      let r1 = f_list_of_darts_num id_L None in
+      let r2 = MK_COMB (REFL a1, r1) in
+      f_good_list_abs1_num id_L (rand (concl r1)) (Some (TRANS base_th r2))
+    | _ -> failwith "bad pattern"
+     in
+  f_good_list_num
+;;
+
+
+load_end __FILE__;;

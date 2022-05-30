@@ -1,0 +1,168 @@
+open Native_strictbuild;;
+load_begin();;
+
+open Iter;;
+open Products;;
+open Permutations;;
+open Misc;;
+open Vectors;;
+open Determinants;;
+open Metric;;
+open Topology;;
+open Convex;;
+open Polytope;;
+open Integration;;
+open Measure;;
+open Complexes;;
+open Transcendentals;;
+open Realanalysis;;
+open Geom;;
+open Cross;;
+open Flyspeck;;
+
+load_path := "/home/monad/hol-dev" :: !load_path;;
+
+let to_num = List_hypermap_computations.to_num;;
+
+needs "eval_support.hl";;
+needs "eval_compile.hl";;
+
+open List_hypermap;;
+open More_list_hypermap;;
+open Seq;;
+
+let flatten_cases = prove
+  (`flatten ([]:((A)list)list) = [] /\
+    flatten (CONS ([]:(A)list) tt) = flatten tt /\
+    flatten (CONS (CONS (h:A) t) tt) = CONS h (flatten (CONS t tt))`, 
+  REWRITE_TAC[flatten; foldr; cat]);;
+
+let list_pairs_cases = prove
+  (`list_pairs ([]:(num)list) = [] /\
+    list_pairs ((h:num) :: t) = list_pairs2 (h :: t) h`,
+  REWRITE_TAC[list_pairs_eq_list_pairs2; list_pairs2; HD]);;
+
+(* Slower without eliminate_abs, faster with eliminate_abs *)
+let good_list_alt = prove
+  (`good_list L <=>
+    (let list = list_of_darts L in
+      uniq list /\
+      ALL (\l. ~(l = [])) L /\
+      ALL (\(a, b). MEM (b, a) list) list)`,
+  LET_TAC THEN EXPAND_TAC "list" THEN
+    REWRITE_TAC[good_list; Seq2.ALL_all; ALL_MEM] THEN
+    REPEAT (FIRST [AP_THM_TAC; AP_TERM_TAC]) THEN
+    REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM]);;
+
+let good_list_alt = prove
+  (`good_list L <=>
+    (let list = list_of_darts L in
+      uniq list /\
+      ALL (\l. ~(l = [])) L /\
+      ALL (\d. MEM (SND d, FST d) list) list)`,
+  LET_TAC THEN EXPAND_TAC "list" THEN
+    REWRITE_TAC[good_list; Seq2.ALL_all; ALL_MEM] THEN
+    REPEAT (FIRST [AP_THM_TAC; AP_TERM_TAC]) THEN
+    REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM]);;
+
+let good_list_alt = PURE_REWRITE_RULE[LET_DEF; LET_END_DEF] good_list_alt;;
+
+
+let f_EQ_num =
+  let cst = `(+):num->num->num` in
+  fun tm1 tm2 opt ->
+    let tm = mk_comb (mk_comb (cst, tm1), tm2) in
+    trans_opt opt (Arith_nat.raw_eq_hash_conv tm);;
+
+let EQ_PAIR = prove
+  (`(xy:(A#B) = xy <=> T) /\
+    ((x:A, y:B) = (a, b) <=> x = a /\ y = b)`,
+  REWRITE_TAC[PAIR_EQ]);;
+
+let EQ_LIST = prove
+  (`(xs:(A)list = xs <=> T) /\
+    ([] = CONS x xs <=> F) /\
+    (CONS x xs = [] <=> F) /\
+    (CONS x xs = CONS y ys <=> x = y /\ xs = ys)`,
+  REWRITE_TAC[injectivity "list"; distinctness "list"]);;
+
+let NOT_CLAUSES' = prove(`~T = F /\ ~F = T`, REWRITE_TAC[]);;
+
+let good_list_db ~eliminate_abs () =
+  let db = empty_db ~eliminate_abs "good_list" in
+  List.iter (fun c -> set_rule db c) [
+    `(=):num->num->bool`;
+  ];
+  ignore @@ add_thms db [
+    "EQ_PAIR", EQ_PAIR, [];
+    "EQ_LIST", EQ_LIST, [];
+    "NOT_CLAUSES'", NOT_CLAUSES', [];
+  ];
+  db;;
+
+let rules = [
+  "FST", FST, [];
+  "SND", SND, [];
+  "MAP", MAP, [];
+  "MEM", MEM, [];
+  "ALL", ALL, [];
+  "flatten_cases", flatten_cases, [];
+  "list_of_faces", list_of_faces, [];
+  "list_pairs2", list_pairs2, [];
+  "list_pairs_cases", list_pairs_cases, [];
+  "list_of_darts_alt", list_of_darts_alt, [];
+  "uniq", uniq, [];
+  "good_list_alt", good_list_alt, [];
+];;
+
+let db = add_thms (good_list_db ~eliminate_abs:true ()) rules;;
+
+let list_tm = List_hypermap_computations.create_hol_list
+  [[0; 1; 2; 3]; [0; 3; 4; 5]; [4; 3; 6]; [6; 3; 2]; [1; 0; 7]; [7; 0; 5];
+     [6; 2; 8; 9]; [8; 2; 1]; [8; 1; 7]; [4; 6; 10]; [10; 6; 9]; [9; 8; 11];
+     [11; 8; 7]; [5; 4; 12]; [12; 4; 10]; [11; 7; 5; 12]; [12; 10; 9; 11]]
+     |> to_num;;
+
+let tm = mk_icomb (`good_list`, list_tm);;
+
+let consts = dependencies db tm;;
+
+let () =
+  write_rules_consts db "/home/monad/Work/hol/flyspeck/text_formalization/tame/out.hl" consts;;
+
+loadt "fan/../tame/out.hl";;
+
+
+open Misc_functions;;
+
+(* 0.973 *)
+test 1000 (f_list_of_darts_num list_tm) None;;
+(* 1.333 *)
+test 1000 List_hypermap_computations.eval_list_of_darts list_tm;;
+
+let eval_good_old tm =
+  let darts = List_hypermap_computations.eval_list_of_darts tm in
+  List_hypermap_computations.eval_good_list0 tm darts;;
+
+(* 1.496 (without let) *)
+(* 0.940 with let *)
+test 10 (f_good_list_num list_tm) None;;
+(* 1.082 *)
+test 10 eval_good_old list_tm;;
+
+
+let tm = f_list_of_darts_num list_tm None |> concl |> rand;;
+
+(* 0.458 *)
+test 10 (f_uniq_num_num tm) None;;
+(* 0.489 *)
+test 10 (List_conversions.eval_uniq_univ List_conversions.pair_eq_conv_num) tm;;
+
+let th1 = f_good_list_abs3_num tm (to_num `1,2`) None;;
+let tm0 = th1 |> concl |> rator |> rand |> rator;;
+let r4 = (tm0, f_good_list_abs3_num tm);;
+(* 0.448 *)
+test 10 (f_ALL_num_num r4 tm) None;;
+
+
+load_end __FILE__;;
