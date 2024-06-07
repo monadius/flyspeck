@@ -7,8 +7,9 @@
 
 (* General lemmas *)
 
+needs "Library/card.ml";;
 
-
+flyspeck_needs "general/hales_tactic.hl";;
 
 module Basics = struct
 

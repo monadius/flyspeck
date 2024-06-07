@@ -9,6 +9,9 @@
 
 (* Tactics.   *)
 
+needs "Multivariate/complexes.ml";;
+needs "Multivariate/vectors.ml";;
+
 module Truong_tactic = struct
 
 

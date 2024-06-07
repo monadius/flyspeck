@@ -6,7 +6,7 @@
 (* Date: 2010-02-09                                                           *)
 (* ========================================================================== *)
 
-(* needs "Library/permutations.ml";; *)
+needs "Library/permutations.ml";;
 
 (* not changed yet. They get used outside this file. *)
 (* number_of_nodes -> card_node_set *)

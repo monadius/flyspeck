@@ -7,6 +7,11 @@
 (* Date: 2010-02-07                                                           *)
 (* ========================================================================== *)
 
+
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/convex.ml";;
+needs "Multivariate/flyspeck.ml";;
+
 module type Aff_sgn_tac_type = sig
   val AFF_SGN_TAC : tactic
 end;;

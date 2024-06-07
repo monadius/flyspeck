@@ -8,7 +8,7 @@
 (* ========================================================================== *)
 
 
-(* needs "Multivariate/flyspeck.ml";; *)
+needs "Multivariate/flyspeck.ml";;
 
 
 module Sphere = struct

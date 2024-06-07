@@ -25,8 +25,9 @@ Feb 18, 2013 some lemmas were deleted that were not needed, svn1626.
 Sep 21, 2014 major deletions of unused theormes, see svn 3679
 *)
 
-
-flyspeck_needs "general/sphere.hl";;
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/convex.ml";;
+needs "Multivariate/flyspeck.ml";;
 
 module Geomdetail (* : Geomdetail_type *) = struct
 

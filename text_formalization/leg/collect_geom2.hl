@@ -20,8 +20,15 @@ Everything dependent on unproved axioms was commented out.
 Feb 2013, Sep 2014, some excess material removed.
  *)
 
+needs "Multivariate/cross.ml";;
+needs "Multivariate/convex.ml";;
+needs "Multivariate/vectors.ml";;
+
+flyspeck_needs "general/hales_tactic.hl";;
+flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "leg/cayleyR_def.hl";;
 flyspeck_needs "leg/collect_geom.hl";;
+flyspeck_needs "leg/geomdetail.hl";;
 
 module Collect_geom2 (* : Collect_geom2_type *)  = struct
 
@@ -33,20 +40,11 @@ module Collect_geom2 (* : Collect_geom2_type *)  = struct
 
   let cayleyR = Cayleyr.cayleyR;;
 
-  let LET_TR = Collect_geom.LET_TR;;
-  let DIST_POW2_DOT = Collect_geom.DIST_POW2_DOT;;
-  let UPS_X_POS = Collect_geom.UPS_X_POS;;
-  let DELTA_POS_4POINTS = Collect_geom.DELTA_POS_4POINTS;;
   let REAL_LDISTRIB = REAL_ADD_LDISTRIB;;
   let POW_2 = REAL_POW_2;;
   let REAL_POSSQ = REAL_LT_SQUARE;;
   let REAL_RDISTRIB = REAL_ARITH 
     `!x y z. (x + y) * z = (x * z) + (y * z)`;;  (* Tactics_jordan *)
-
-(*
-  let BY = Hales_tactic.BY;;
-  let arith = Hales_tactic.arith;;
-*)
 
 (* deprecated def from sphere.hl *)  
   let mk_vec3 = new_definition 
