@@ -6,6 +6,9 @@
 (* Date: 2010-07-27                                                           *)
 (* ========================================================================== *)
 
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "general/hales_tactic.hl";;
+flyspeck_needs "jordan/float.hl";;
 
 module Flyspeck_constants = struct
 

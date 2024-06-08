@@ -23,6 +23,13 @@ To do. Allow the user to supply theorems that carry domain constraints,
  (such as ACS_ATN).
 *)
 
+needs "Multivariate/transcendentals.ml";;
+
+flyspeck_needs "jordan/refinement.hl";;
+flyspeck_needs "jordan/lib_ext.hl";;
+flyspeck_needs "jordan/real_ext.hl";;
+flyspeck_needs "jordan/num_ext_nabs.hl";;
+flyspeck_needs "jordan/tactics_jordan.hl";;
 flyspeck_needs "jordan/taylor_atn.hl";;
 
 module Float = struct

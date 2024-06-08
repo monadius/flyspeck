@@ -8,6 +8,11 @@
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
 
+needs "Multivariate/transcendentals.ml";;
+
+flyspeck_needs "leg/collect_geom2.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+
 module Real_ext = struct
 
 open Parse_ext_override_interface;;

@@ -8,6 +8,15 @@
 (*                                                                           *)
 (* ========================================================================= *)
 
+needs "Multivariate/misc.ml";;
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/transcendentals.ml";;
+needs "Multivariate/realanalysis.ml";;
+
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "trigonometry/trig1.hl";;
+flyspeck_needs "trigonometry/trig2.hl";;
+flyspeck_needs "trigonometry/delta_x.hl";;
 flyspeck_needs "trigonometry/euler_complement.hl";;
 
 module Euler_multivariate = struct 

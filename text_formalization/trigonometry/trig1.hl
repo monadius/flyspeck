@@ -12,6 +12,12 @@ Formal Proofs Blueprint Chapter  on Trigonometry
 some proofs copied from John Harrison.
 *)
 
+needs "Multivariate/misc.ml";;
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/transcendentals.ml";;
+needs "Multivariate/cross.ml";;
+needs "Multivariate/flyspeck.ml";;
+
 flyspeck_needs "general/sphere.hl";;
 
 

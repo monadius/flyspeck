@@ -7,6 +7,11 @@
 (* Date: 2010-07-08                                                           *)
 (* ========================================================================== *)
 
+flyspeck_needs "jordan/refinement.hl";;
+flyspeck_needs "jordan/lib_ext.hl";;
+flyspeck_needs "jordan/hash_term.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+
 (* needs tactics_fix.ml;; 
    tactics_refine.ml ;; 
    lib_ext.ml *)

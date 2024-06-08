@@ -10,6 +10,8 @@
 (*                        SOME TACTICS                                       *)
 (* ========================================================================= *)
 
+needs "Multivariate/realanalysis.ml";;
+
 module Vukhacky_tactics = struct 
 
 let UP_ASM_TAC = FIRST_X_ASSUM MP_TAC;;

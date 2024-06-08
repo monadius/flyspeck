@@ -9,7 +9,8 @@
 (* ========================================================================== *)
  
 
-(* needs tactics_ext.ml *)
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+flyspeck_needs "jordan/tactics_jordan.hl";;
 
 module Num_ext_nabs = struct
 

@@ -15,7 +15,14 @@
 (* ========================================================================= *)
 (*                     SOME USEFUL TACTICS                                   *)
 (* ========================================================================= *)
- 
+
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/determinants.ml";;
+
+flyspeck_needs "general/sphere.hl";;
+flyspeck_needs "trigonometry/trig1.hl";;
+flyspeck_needs "trigonometry/trig2.hl";;
+
 module Delta_x = struct 
 
 open Sphere;;

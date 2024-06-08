@@ -16,18 +16,15 @@
 (*                                                                          *)
 (*==========================================================================*)
 
+needs "Multivariate/vectors.ml";;
 
 flyspeck_needs "general/sphere.hl";;
-
 flyspeck_needs "general/prove_by_refinement.hl";;
-
 flyspeck_needs "trigonometry/trig1.hl";;
 flyspeck_needs "trigonometry/trig2.hl";;
 flyspeck_needs "trigonometry/delta_x.hl";;
 flyspeck_needs "trigonometry/euler_complement.hl";;
 flyspeck_needs "trigonometry/euler_multivariate.hl";;
-
-
 
 module Euler_main_theorem = struct
 

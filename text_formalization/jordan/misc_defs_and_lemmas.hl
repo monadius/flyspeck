@@ -14,9 +14,13 @@ Euclidan space that are not relevant here.
 May 7, 2011, renamed INV -> INVERSE to avoid clash with HOL Library/rstc.ml 
 *)
 
+flyspeck_needs "jordan/tactics_jordan.hl";;
+flyspeck_needs "jordan/parse_ext_override_interface.hl";;
+flyspeck_needs "jordan/real_ext.hl";;
+flyspeck_needs "jordan/float.hl";;
+
 module Misc_defs_and_lemmas = struct
 
-open Tactics_jordan;;
 open Tactics_jordan;;
 open Parse_ext_override_interface;;
 open Real_ext;;

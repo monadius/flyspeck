@@ -9,6 +9,15 @@
 (* Date: 2010-07-14                                                           *)
 (* ========================================================================== *)
 
+needs "Multivariate/misc.ml";;
+needs "Multivariate/vectors.ml";;
+needs "Multivariate/convex.ml";;
+needs "Multivariate/complexes.ml";;
+needs "Multivariate/canal.ml";;
+needs "Multivariate/transcendentals.ml";;
+needs "Multivariate/realanalysis.ml";;
+
+flyspeck_needs "leg/collect_geom.hl";;
 
 (*
 This file gives the half-angle identity for atan
