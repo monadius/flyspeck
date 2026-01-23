@@ -23,7 +23,7 @@ let eval_command ?(silent=false) command =
    with exn ->
      let save = !Toploop.parse_use_file in
      Toploop.parse_use_file := (fun _ -> raise exn);
-     Stdlib.ignore (Toploop.use_silently pp (Toploop.String "/dev/null"));
+     Stdlib.ignore (Toploop.use_silently pp (Toploop.File "/dev/null"));
      Toploop.parse_use_file := save;
      (false,  Buffer.contents buffer);;
 
